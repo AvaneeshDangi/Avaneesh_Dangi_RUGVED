@@ -1,4 +1,4 @@
-def luhn_check(card_number):
+def luhn(card_number):
     # Remove spaces and hyphens
     card_number = card_number.replace(" ", "")
     card_number = card_number.replace("-", "")
@@ -28,7 +28,7 @@ def luhn_check(card_number):
 
 card_number = input("Enter credit card number: ")
 
-if luhn_check(card_number):
+if luhn(card_number):
     print("Valid credit card number")
 else:
     print("Invalid credit card number")
