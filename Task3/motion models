@@ -1,1 +1,42 @@
+import numpy as np
+import matplotlib.pyplot as plt
 
+x, y, t = 0, 0, 0
+p = [(x, y, t)]
+
+n = int(input("Enter number of commands: "))
+
+for i in range(n):
+    c = input("Enter command: ").lower().split()
+    a, v = c[0], float(c[1])
+
+    x0, y0, t0 = x, y, t
+
+    if a == "forward":
+        x += v * np.cos(t)
+        y += v * np.sin(t)
+    elif a == "left":
+        t += np.radians(v)
+    elif a == "right":
+        t -= np.radians(v)
+
+    p.append((x, y, t))
+
+    print(f"Initial Pos: ({x0:.2f}, {y0:.2f}, {t0:.2f}) | Executing: {' '.join(c)} | Final Pos: ({x:.2f}, {y:.2f}, {t:.2f})")
+
+p = np.array(p)
+
+plt.plot(p[:,0], p[:,1], '-o')
+plt.scatter(p[0,0], p[0,1], marker='s', s=100, label='Start')
+plt.scatter(p[-1,0], p[-1,1], marker='X', s=100, label='End')
+
+plt.quiver(p[:,0], p[:,1], np.cos(p[:,2]), np.sin(p[:,2]),
+         angles='xy', scale_units='xy', scale=2)
+
+plt.xlabel("X")
+plt.ylabel("Y")
+plt.title("Robot Trajectory")
+plt.grid()
+plt.axis("equal")
+plt.legend()
+plt.show()
