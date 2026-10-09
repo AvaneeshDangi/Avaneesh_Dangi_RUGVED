@@ -1,0 +1,222 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+df = pd.read_csv("co2.csv")
+
+print("First 5 rows:")
+print(df.head())
+
+print("\nShape of dataset:")
+print(df.shape)
+
+print("\nDataset information:")
+df.info()
+
+print("\nMissing values:")
+print(df.isnull().sum())
+
+print("\nStatistical summary:")
+print(df.describe())
+
+#eda
+plt.figure(figsize=(8,5))
+plt.hist(df["CO2 Emissions(g/km)"], bins=30)
+plt.xlabel("CO2 Emissions (g/km)")
+plt.ylabel("Frequency")
+plt.title("Distribution of CO2 Emissions")
+plt.show()
+
+#plotting features
+plt.figure(figsize=(8,5))
+plt.scatter(
+    df["Engine Size(L)"],
+    df["CO2 Emissions(g/km)"],
+    s=10
+)
+plt.xlabel("Engine Size (L)")
+plt.ylabel("CO2 Emissions (g/km)")
+plt.title("Engine Size vs CO2 Emissions")
+plt.show()
+
+
+
+plt.figure(figsize=(8,5))
+plt.scatter(
+    df["Fuel Consumption Comb (L/100 km)"],
+    df["CO2 Emissions(g/km)"],
+    s=10
+)
+plt.xlabel("Combined Fuel Consumption (L/100 km)")
+plt.ylabel("CO2 Emissions (g/km)")
+plt.title("Fuel Consumption vs CO2 Emissions")
+plt.show()
+
+
+# Correlation
+numeric = df.select_dtypes(include=np.number)
+correlation = numeric.corr()
+
+print("\nCorrelation with CO2:")
+print(
+    correlation["CO2 Emissions(g/km)"]
+    .sort_values(ascending=False)
+)
+
+
+#  LINEAR REGRESSION
+
+
+features = [
+    "Engine Size(L)",
+    "Cylinders",
+    "Fuel Consumption City (L/100 km)",
+    "Fuel Consumption Hwy (L/100 km)",
+    "Fuel Consumption Comb (L/100 km)"
+]
+
+X = df[features].values
+y = df["CO2 Emissions(g/km)"].values
+
+# Standardization
+mean = np.mean(X, axis=0)
+std = np.std(X, axis=0)
+
+X = (X - mean) / std
+
+
+
+np.random.seed(42)
+
+index = np.random.permutation(len(X))
+
+n = int(0.8 * len(X))
+
+train = index[:n]
+test = index[n:]
+
+X_train = X[train]
+X_test = X[test]
+
+y_train = y[train]
+y_test = y[test]
+
+
+
+def Jcost(X, y, w, b):
+
+    m = len(y)
+
+    predictions = X @ w + b
+    cost = (1 / (2 * m)) * np.sum(
+        (predictions - y) ** 2
+    )
+
+    return cost
+
+def gradient_descent(X, y, w, b, alpha, iterations):
+
+    m = len(y)
+    cost_history = []
+
+    for i in range(iterations):
+
+        predictions = X @ w + b
+
+        dw = (1 / m) * X.T @ (predictions - y)
+        db = (1 / m) * np.sum(predictions - y)
+        w = w - alpha * dw
+        b = b - alpha * db
+        cost = Jcost(X, y, w, b)
+        cost_history.append(cost)
+
+    return w, b, cost_history
+
+
+
+w = np.zeros(X_train.shape[1])
+b = 0
+
+#learnrate
+alpha = 0.01
+iterations = 10000
+
+
+
+w, b, cost_history = gradient_descent(
+    X_train,
+    y_train,
+    w,
+    b,
+    alpha,
+    iterations
+)
+
+
+#pred
+y_pred = X_test @ w + b
+print ("w: ",w, "b: ",b,"")
+
+#  MODEL EVALUATION
+
+
+mae = np.mean(
+    np.abs(y_test - y_pred)
+)
+
+rmse = np.sqrt(
+    np.mean((y_test - y_pred) ** 2)
+)
+
+#r2 = 1 - (
+ #   np.sum((y_test - y_pred) ** 2) /
+ #   np.sum((y_test - np.mean(y_test)) ** 2)
+#)
+
+
+print("LINEAR REGRESSION")
+
+
+print("\nWeights:")
+
+for i in range(len(features)):
+    print(features[i], ":", w[i])
+
+print("\nBias:", b)
+
+print("\nMAE:", mae)
+print("RMSE:", rmse)
+#print("R2 Score:", r2)
+
+
+
+plt.figure(figsize=(8,5))
+plt.plot(cost_history)
+plt.xlabel("Iterations")
+plt.ylabel("Cost")
+plt.title("Cost Function vs Iterations")
+plt.show()
+
+#actvs pred
+plt.figure(figsize=(8,5))
+
+plt.scatter(
+    y_test,
+    y_pred,
+    s=10
+)
+
+minimum = min( y_test.min(), y_pred.min())
+
+maximum = max( y_test.max(), y_pred.max())
+
+plt.plot(
+    [minimum, maximum],
+    [minimum, maximum],
+    linestyle="--"
+)
+
+plt.xlabel("Actual CO2")
+plt.ylabel("Predicted CO2")
+plt.title("Actual vs Predicted CO2")
+plt.show()
