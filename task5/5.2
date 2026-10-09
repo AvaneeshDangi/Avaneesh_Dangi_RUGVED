@@ -1,0 +1,314 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+df = pd.read_csv("co2.csv")
+
+print("First 5 rows:")
+print(df.head())
+
+print("\nShape of dataset:")
+print(df.shape)
+
+print("\nDataset information:")
+df.info()
+
+print("\nMissing values:")
+print(df.isnull().sum())
+
+
+
+# featureplots
+plt.figure(figsize=(8,5))
+plt.hist(
+    df["CO2 Emissions(g/km)"],
+    bins=30
+)
+plt.xlabel("CO2 Emissions (g/km)")
+plt.ylabel("Frequency")
+plt.title("Distribution of CO2 Emissions")
+plt.show()
+
+
+
+plt.figure(figsize=(8,5))
+plt.scatter(
+    df["Engine Size(L)"],
+    df["CO2 Emissions(g/km)"],
+    s=10
+)
+plt.xlabel("Engine Size (L)")
+plt.ylabel("CO2 Emissions (g/km)")
+plt.title("Engine Size vs CO2")
+plt.show()
+
+plt.figure(figsize=(8,5))
+plt.scatter(
+    df["Fuel Consumption Comb (L/100 km)"],
+    df["CO2 Emissions(g/km)"],
+    s=10
+)
+plt.xlabel("Combined Fuel Consumption (L/100 km)")
+plt.ylabel("CO2 Emissions (g/km)")
+plt.title("Fuel Consumption vs CO2")
+plt.show()
+
+
+#  CREATE BINARY TARGET
+#set limit for 0 and 1 with median
+
+median = np.median(
+    df["CO2 Emissions(g/km)"]
+)
+
+df["High_CO2"] = (
+    df["CO2 Emissions(g/km)"] > median
+).astype(int)
+
+print("\nMedian CO2:", median)
+
+print("\nClass distribution:")
+print(df["High_CO2"].value_counts())
+
+#logreg
+features = [
+    "Engine Size(L)",
+    "Cylinders",
+    "Fuel Consumption City (L/100 km)",
+    "Fuel Consumption Hwy (L/100 km)",
+    "Fuel Consumption Comb (L/100 km)"
+]
+
+X = df[features].values
+y = df["High_CO2"].values
+
+
+# scaling
+mean = np.mean(X, axis=0)
+std = np.std(X, axis=0)
+
+X = (X - mean) / std
+
+
+
+#  TRAIN-TEST SPLIT
+
+
+np.random.seed(42)
+
+index = np.random.permutation(len(X))
+
+n = int(0.8 * len(X))
+
+train = index[:n]
+test = index[n:]
+
+X_train = X[train]
+X_test = X[test]
+
+y_train = y[train]
+y_test = y[test]
+
+
+
+
+def sigmoid(z):
+
+    return 1 / (1 + np.exp(-z))
+
+
+def Jcost(X, y, w, b):
+
+    m = len(y)
+
+    z = X @ w + b
+
+    a = sigmoid(z)
+
+    cost = -(1 / m) * np.sum(
+        y * np.log(a + 1e-10) +
+        (1 - y) * np.log(1 - a + 1e-10)
+    )
+
+    return cost
+
+
+def gradient_descent(
+    X, y, w, b, alpha, iterations
+):
+
+    m = len(y)
+
+    cost_history = []
+
+    for i in range(iterations):
+
+
+        z = X @ w + b
+
+        #brings between 0 1nd 1
+        a = sigmoid(z)
+
+
+        dw = (1 / m) * X.T @ (a - y)
+
+        db = (1 / m) * np.sum(a - y)
+
+
+        w = w - alpha * dw
+
+
+        b = b - alpha * db
+
+
+        cost = Jcost(
+            X, y, w, b
+        )
+
+        cost_history.append(cost)
+
+    return w, b, cost_history
+
+
+
+w = np.zeros(
+    X_train.shape[1]
+)
+
+b = 0
+
+alpha = 0.01
+iterations = 10000
+
+
+# TRAIN MODEL
+
+
+w, b, cost_history = gradient_descent(
+    X_train,
+    y_train,
+    w,
+    b,
+    alpha,
+    iterations
+)
+
+probability = sigmoid(
+    X_test @ w + b
+)
+
+y_pred = (
+    probability >= 0.5
+).astype(int)
+
+
+
+#  ACCURACY
+
+
+accuracy = np.mean(
+    y_pred == y_test
+)
+
+print("LOGISTIC REGRESSION")
+
+
+print("\nAccuracy:", accuracy)
+
+print("\nWeights:")
+
+for i in range(len(features)):
+    print(features[i], ":", w[i])
+
+print("\nBias:", b)
+
+print("\nFinal Cost:", cost_history[-1])
+
+
+#confusion matrix
+TP = np.sum(
+    (y_test == 1) &
+    (y_pred == 1)
+)
+
+TN = np.sum(
+    (y_test == 0) &
+    (y_pred == 0)
+)
+
+FP = np.sum(
+    (y_test == 0) &
+    (y_pred == 1)
+)
+
+FN = np.sum(
+    (y_test == 1) &
+    (y_pred == 0)
+)
+
+print("\nConfusion Matrix")
+
+print("True Positive :", TP)
+print("True Negative :", TN)
+print("False Positive:", FP)
+print("False Negative:", FN)
+
+
+
+
+plt.figure(figsize=(8,5))
+
+plt.plot(cost_history)
+
+plt.xlabel("Iterations")
+plt.ylabel("Cost")
+plt.title("Logistic Regression Cost vs Iterations")
+
+plt.show()
+
+
+
+#  CONFUSION MATRIX GRAPH
+
+
+cm = np.array([
+    [TN, FP],
+    [FN, TP]
+])
+
+plt.figure(figsize=(6,5))
+
+plt.imshow(
+    cm,
+    cmap="Blues"
+)
+
+plt.colorbar()
+
+plt.xticks(
+    [0, 1],
+    ["Low CO2", "High CO2"]
+)
+
+plt.yticks(
+    [0, 1],
+    ["Low CO2", "High CO2"]
+)
+
+plt.xlabel("Predicted")
+plt.ylabel("Actual")
+
+plt.title("Confusion Matrix")
+
+for i in range(2):
+    for j in range(2):
+
+        plt.text(
+            j,
+            i,
+            cm[i, j],
+            ha="center",
+            va="center"
+        )
+
+plt.show()
